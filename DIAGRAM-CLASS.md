@@ -1,77 +1,84 @@
-```mermaid
 classDiagram
     class User {
-        +id: string
-        +username: string
-        +email: string
-        +status: UserStatus
-        +reputation: number
-        +friends: User[]
-        +sendFriendRequest()
-        +acceptFriendRequest()
-        +updateStatus()
+        +string username
+        +string email
+        +string password
+        +RoleTypes role
+        +StatusUser status
+        +number reputation
+        +Date timestamp
+        +User[] friends
+        +Channel[] channels
+        +Message[] messages
     }
 
     class Channel {
-        +id: string
-        +name: string
-        +type: ChannelType
-        +isPrivate: boolean
-        +isSafeMode: boolean
-        +owner: User
-        +members: User[]
-        +moderators: User[]
-        +bannedWords: string[]
-        +createMessage()
-        +inviteUser()
-        +banUser()
-        +bounceUser()
+        +string name
+        +string type
+        +boolean isPrivate
+        +boolean isSafeMode
+        +string[] bannedWords
+        +Date timestamp
+        +User owner
+        +User[] members
+        +User[] moderators
+        +Message[] messages
     }
 
     class Message {
-        +id: string
-        +content: string
-        +sender: User
-        +timestamp: DateTime
-        +isPinned: boolean
-        +channel: Channel
-        +pin()
-        +unpin()
+        +string content
+        +string type
+        +Date editedAt
+        +Date deletedAt
+        +Date createdAt
+        +Date updatedAt
+        +User sender
+        +User[] readBy
+        +Channel channel
+        +Conversation conversation
     }
 
-    class TemporaryRoom {
-        +id: string
-        +duration: number
-        +scheduledTime: DateTime
-        +participants: User[]
-        +schedule()
-        +start()
-        +end()
+    class Conversation {
+        +User[] participants
+        +Message[] messages
+        +Date createdAt
     }
 
-    class Notification {
-        +id: string
-        +type: NotificationType
-        +recipient: User
-        +content: string
-        +isRead: boolean
-        +send()
-        +markAsRead()
+    class FriendRequest {
+        +User sender
+        +User recipient
+        +FriendRequestStatus status
+        +Date timestamp
     }
 
-    class ChatMetrics {
-        +sessionId: string
-        +startTime: DateTime
-        +endTime: DateTime
-        +messageCount: number
-        +popularWords: Map
-        +generateReport()
+    class FriendRequestStatus {
+        <<enumeration>>
+        PENDING
+        ACCEPTED
+        DECLINED
     }
 
-    User "1" --> "*" Channel : creates/joins
+    class RoleTypes {
+        <<enumeration>>
+        USER
+    }
+
+    class StatusUser {
+        <<enumeration>>
+        OFFLINE
+        ONLINE
+        BANNED
+    }
+
+    User "1" --> "*" Channel : owns
     User "1" --> "*" Message : sends
+    User "*" --> "*" Channel : is member of
+    User "*" --> "*" Channel : moderates
+    User "1" -- "*" FriendRequest : sends/receives
+    User "*" --> "*" Conversation : participates
     Channel "1" --> "*" Message : contains
-    Channel "1" --> "1" ChatMetrics : generates
-    User "1" --> "*" Notification : receives
-    User "1" --> "*" TemporaryRoom : participates
-    Channel "1" --> "*" User : has members
+    Conversation "1" --> "*" Message : contains
+    Message "*" --> "*" User : read by
+    FriendRequest --> FriendRequestStatus : has status
+    User --> RoleTypes : has role
+    User --> StatusUser : has status
