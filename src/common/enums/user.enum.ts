@@ -6,4 +6,5 @@ export enum RoleTypes {
 export enum StatusUser {
   OFFLINE = 'OFFLINE',
   ONLINE = 'ONLINE',
+  BANNED = 'BANNED',
 }

@@ -29,6 +29,9 @@ export class User {
   friends: User[];
 
 
+
+  @Prop({ default: Date.now })
+  timestamp: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

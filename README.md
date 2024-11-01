@@ -34,4 +34,6 @@ Chat Platfome like discord and slack.
 
 4. **Run the Application**
 
-   ```npm run start:dev
+   ```npm run start:dev```
+
+   

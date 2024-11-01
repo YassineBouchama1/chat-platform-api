@@ -5,19 +5,19 @@ import {
 } from '@nestjs/common';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
+import { User, UserDocument } from 'src/user/schemas/user.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument } from 'src/user/schemas/user.schema';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>, // here we call  schema <model user>
     private jwtService: JwtService, // this give us ability to create token for users
-  ) {}
+  ) { }
 
   // SignupDto it's like a validator  validate data we pass to it
   async signup(signupData: SignupDto) {
@@ -88,7 +88,7 @@ export class AuthService {
     const access_token = await this.jwtService.signAsync(payload);
 
     return {
-      access_token,
+      token: access_token,
     };
   }
 }
