@@ -10,7 +10,7 @@ import { configuration } from 'config/app.config';
 import { ChannelModule } from './channel/channel.module';
 import { ConversationModule } from './conversation/conversation.module';
 import { FriendshipModule } from './friendship/friendship.module';
-
+import { MessageModule } from './message/message.module';
 
 @Module({
   imports: [
@@ -45,16 +45,15 @@ import { FriendshipModule } from './friendship/friendship.module';
       inject: [ConfigService],
     }),
 
-
     UserModule,
     AuthModule,
-  
+
     ChannelModule,
     ConversationModule,
     FriendshipModule,
-
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
