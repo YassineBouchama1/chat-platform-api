@@ -3,7 +3,10 @@ import { WebSocketGateway, WebSocketServer, SubscribeMessage, OnGatewayConnectio
 import { Server } from 'socket.io';
 import { AuthenticatedSocket } from '../common/socket.middleware';
 import { Injectable } from '@nestjs/common';
-import { ChatService } from './chat.service';
+import { InjectModel } from '@nestjs/mongoose';
+import { Chat, ChatDocument } from './schemas/chat.schema';
+import { Model } from 'mongoose';
+import { User, UserDocument } from 'src/user/schemas/user.schema';
 
 interface CallParticipant {
     userId: string;
@@ -25,6 +28,10 @@ interface CallRoom {
     }
 })
 export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
+    constructor(
+        @InjectModel(Chat.name) private chatModel: Model<ChatDocument>,
+        @InjectModel(User.name) private userModel: Model<UserDocument>
+    ) { }
     @WebSocketServer()
     server: Server;
 
@@ -45,10 +52,134 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
     }
 
-    @SubscribeMessage('joinCall')
-    handleJoinCall(socket: AuthenticatedSocket, data: { chatId: string }) {
+
+
+    @SubscribeMessage('initiateCall')
+    async handleInitiateCall(socket: AuthenticatedSocket, data: {
+        chatId: string,
+        type: 'audio' | 'video'
+    }) {
+        const { chatId, type } = data;
+        const callerId = socket.user._id.toString();
+        const callerName = socket.user.username;
+
+        // Get the chat document to check members
+        const chat = await this.chatModel.findById(chatId).exec();
+        if (!chat) {
+            return { success: false, message: 'Chat not found' };
+        }
+
+        // Check if caller is a member of the chat
+        if (!chat.members.some(member => member.toString() === callerId)) {
+            return { success: false, message: 'Not a member of this chat' };
+        }
+
+        // Create a room for the chat if it doesn't exist
+        if (!this.activeRooms.has(chatId)) {
+            this.activeRooms.set(chatId, new Set());
+        }
+
+        // Add caller to active room
+        this.activeRooms.get(chatId).add(callerId);
+
+        // Emit incoming call event to all chat members except the caller
+        for (const memberId of chat.members) {
+            const memberIdString = memberId.toString();
+            if (memberIdString !== callerId) {
+                const targetSocketId = this.userSocketMap.get(memberIdString);
+                if (targetSocketId) {
+                    this.server.to(targetSocketId).emit('incomingCall', {
+                        chatId,
+                        callerId,
+                        callerName,
+                        type
+                    });
+                }
+            }
+        }
+
+        return { success: true };
+    }
+
+    @SubscribeMessage('acceptCall')
+    handleAcceptCall(socket: AuthenticatedSocket, data: {
+        chatId: string,
+        callerId: string
+    }) {
+        const { chatId, callerId } = data;
+        const accepterId = socket.user._id.toString();
+
+        // Notify caller that the call was accepted
+        const callerSocketId = this.userSocketMap.get(callerId);
+        if (callerSocketId) {
+            this.server.to(callerSocketId).emit('callAccepted', {
+                userId: accepterId,
+                username: socket.user.username
+            });
+        }
+
+        // Add accepter to active room
+        if (!this.activeRooms.has(chatId)) {
+            this.activeRooms.set(chatId, new Set());
+        }
+        this.activeRooms.get(chatId).add(accepterId);
+
+        return { success: true };
+    }
+
+    @SubscribeMessage('rejectCall')
+    handleRejectCall(socket: AuthenticatedSocket, data: {
+        chatId: string,
+        callerId: string
+    }) {
+        const { chatId, callerId } = data;
+        const rejecterId = socket.user._id.toString();
+
+        // Notify caller that the call was rejected
+        const callerSocketId = this.userSocketMap.get(callerId);
+        if (callerSocketId) {
+            this.server.to(callerSocketId).emit('callRejected', {
+                userId: rejecterId,
+                username: socket.user.username
+            });
+        }
+
+        return { success: true };
+    }
+
+    @SubscribeMessage('leaveCall')
+    handleLeaveCall(socket: AuthenticatedSocket, data: { chatId: string }) {
         const { chatId } = data;
         const userId = socket.user._id.toString();
+
+        // Remove user from active room
+        const room = this.activeRooms.get(chatId);
+        if (room) {
+            room.delete(userId);
+            if (room.size === 0) {
+                this.activeRooms.delete(chatId);
+            }
+        }
+
+        // Notify others that user left
+        socket.to(`call-${chatId}`).emit('userLeft', {
+            userId: userId
+        });
+
+        socket.leave(`call-${chatId}`);
+        return { success: true };
+    }
+
+    @SubscribeMessage('joinCall')
+    async handleJoinCall(socket: AuthenticatedSocket, data: { chatId: string }) {
+        const { chatId } = data;
+        const userId = socket.user._id.toString();
+
+        // Verify chat membership
+        const chat = await this.chatModel.findById(chatId).exec();
+        if (!chat || !chat.members.some(member => member.toString() === userId)) {
+            return { success: false, message: 'Not authorized to join this call' };
+        }
 
         if (!this.activeRooms.has(chatId)) {
             this.activeRooms.set(chatId, new Set());
@@ -65,16 +196,25 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
             username: socket.user.username
         });
 
-        // Send current participants to the joining user
-        const participants = Array.from(room).map(participantId => ({
-            userId: participantId,
-            username: 'User ' + participantId // You might want to fetch actual usernames
-        }));
+        // Get actual usernames from the database
+        const participantIds = Array.from(room);
+        const participants = await this.getUsersInfo(participantIds);
 
         socket.emit('currentParticipants', { participants });
 
-        console.log(`User ${userId} joined call ${chatId}`);
-        return { participants };
+        return { success: true, participants };
+    }
+
+    // Helper method to get users information
+    private async getUsersInfo(userIds: string[]) {
+        const users = await this.userModel.find({
+            _id: { $in: userIds }
+        }).select('username _id').exec();
+
+        return users.map(user => ({
+            userId: user._id.toString(),
+            username: user.username
+        }));
     }
 
     @SubscribeMessage('offer')
@@ -128,3 +268,5 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
     }
 }
+
+
