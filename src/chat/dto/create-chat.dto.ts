@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsArray, isBoolean, IsBoolean, IsMongoId, IsOptional, IsString } from 'class-validator';
 
 export class CreateChatDto {
   @IsString()
@@ -26,10 +26,15 @@ export class CreateChatDto {
   ownerId?: string;
 
   @IsString()
-  message: string;
+  @IsOptional()
+  message?: string;
 
   // @IsMongoId()
   @IsOptional()
   @IsArray()
   members?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  startConversation?: boolean;
 }

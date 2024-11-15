@@ -3,7 +3,7 @@ import { MessageService } from './message.service';
 import { MessageController } from './message.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Message, MessageSchema } from 'src/message/schemas/message.schema';
-import { Chat, ChatSchema } from 'src/channel/schemas/chat.schema';
+import { Chat, ChatSchema } from 'src/chat/schemas/chat.schema';
 import { User, UserSchema } from 'src/user/schemas/user.schema';
 import { MessageGateway } from './message.gateway';
 
@@ -18,7 +18,7 @@ import { MessageGateway } from './message.gateway';
 
   ],
   controllers: [MessageController],
-  providers: [MessageService,MessageGateway],
+  providers: [MessageService, MessageGateway],
   exports: [MessageService, MessageGateway],
 
 })

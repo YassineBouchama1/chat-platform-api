@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Message, MessageDocument } from './schemas/message.schema';
 import { CreateMessageDto } from './dto/create-message.dto';
-import { Chat, ChatDocument } from 'src/channel/schemas/chat.schema';
+import { Chat, ChatDocument } from 'src/chat/schemas/chat.schema';
 import { MessageGateway } from './message.gateway';
 
 @Injectable()

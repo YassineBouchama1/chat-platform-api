@@ -13,9 +13,8 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from '../user/schemas/user.schema';
-import { Chat } from '../channel/schemas/chat.schema';
+import { Chat } from '../chat/schemas/chat.schema';
 import { AuthenticatedSocket, createSocketMiddleware } from '../common/socket.middleware';
-import { StatusUser } from 'src/common/enums/user.enum';
 
 @Injectable()
 @WebSocketGateway({
@@ -40,54 +39,20 @@ export class MessageGateway implements OnGatewayInit, OnGatewayConnection, OnGat
         server.use(middleware);
     }
 
-    async handleConnection(socket: AuthenticatedSocket) {
-        if (!socket.user) return;
-
-        const userId = socket.user._id.toString();
-        this.connectedUsers.set(userId, socket.id);
-
-        // Update user status to online
-        await this.userModel.findByIdAndUpdate(userId, { status: StatusUser.ONLINE });
-
-        // Find all chats the user is a member of
-        const userChats = await this.chatModel.find({ members: userId });
-
-        // Join all chat rooms
-        userChats.forEach(chat => {
-            socket.join(chat._id.toString());
-        });
-
-        // Broadcast user connection to all their chats
-        userChats.forEach(chat => {
-            socket.to(chat._id.toString()).emit('userConnected', {
-                userId: userId,
-                username: socket.user.username,
-                status: StatusUser.ONLINE
-            });
-        });
+    async handleConnection(client: AuthenticatedSocket) {
+        const userId = client.handshake.query.userId as string;
+        if (userId) {
+            this.connectedUsers.set(client.id, userId);
+            client.broadcast.emit('user:connected', { userId });
+        }
     }
 
-    async handleDisconnect(socket: AuthenticatedSocket) {
-        if (!socket.user) return;
-
-        const userId = socket.user._id.toString();
-        this.connectedUsers.delete(userId);
-
-        // Update user status to offline
-        await this.userModel.findByIdAndUpdate(userId, { status: StatusUser.OFFLINE });
-
-
-        // Find all chats the user is a member of
-        const userChats = await this.chatModel.find({ members: userId });
-
-        // Broadcast user disconnection to all their chats
-        userChats.forEach(chat => {
-            socket.to(chat._id.toString()).emit('userDisconnected', {
-                userId: userId,
-                username: socket.user.username,
-                status: StatusUser.OFFLINE
-            });
-        });
+    async handleDisconnect(client: AuthenticatedSocket) {
+        const userId = this.connectedUsers.get(client.id);
+        if (userId) {
+            this.connectedUsers.delete(client.id);
+            client.broadcast.emit('user:disconnected', { userId });
+        }
     }
 
     @SubscribeMessage('joinChat')

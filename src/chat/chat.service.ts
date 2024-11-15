@@ -22,7 +22,7 @@ export class ChatService {
 
 
   async createChat(createChatDto: CreateChatDto, userId: string): Promise<Chat> {
-    const { name, type, isPrivate, isSafeMode, members = [], isGroup, message } = createChatDto;
+    const { name, type, isPrivate, isSafeMode, members = [], isGroup, message, startConversation } = createChatDto;
 
     const ownerId = new Types.ObjectId(userId);
 
@@ -52,7 +52,7 @@ export class ChatService {
     await newChat.save();
 
     // Create initial message if it's a direct conversation
-    if (!isGroup && message) {
+    if (!isGroup || !startConversation && message) {
       const messageDto: CreateMessageDto = { content: message };
       await this.messageService.sendMessage(newChat._id.toString(), messageDto, userId);
       newChat.lastMessage = message;

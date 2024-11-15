@@ -1,4 +1,6 @@
 
+import { JwtService } from '@nestjs/jwt';
+import { InjectModel } from '@nestjs/mongoose';
 import {
     WebSocketGateway,
     WebSocketServer,
@@ -6,7 +8,10 @@ import {
     OnGatewayConnection,
     OnGatewayDisconnect,
 } from '@nestjs/websockets';
+import { Model } from 'mongoose';
 import { Server, Socket } from 'socket.io';
+import { AuthenticatedSocket, createSocketMiddleware } from 'src/common/socket.middleware';
+import { User } from 'src/user/schemas/user.schema';
 
 @WebSocketGateway({
     cors: {
@@ -19,7 +24,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     private connectedUsers: Map<string, string> = new Map(); // socketId -> userId
 
-    async handleConnection(client: Socket) {
+    constructor(
+        private jwtService: JwtService,
+        @InjectModel(User.name) private userModel: Model<User>,
+    ) { }
+    afterInit(server: Server) {
+        const middleware = createSocketMiddleware(this.jwtService, this.userModel);
+        server.use(middleware);
+    }
+    async handleConnection(client: AuthenticatedSocket) {
         const userId = client.handshake.query.userId as string;
         if (userId) {
             this.connectedUsers.set(client.id, userId);
@@ -27,7 +40,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
     }
 
-    async handleDisconnect(client: Socket) {
+    async handleDisconnect(client: AuthenticatedSocket) {
         const userId = this.connectedUsers.get(client.id);
         if (userId) {
             this.connectedUsers.delete(client.id);
@@ -45,9 +58,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.leave(chatId);
     }
 
-    @SubscribeMessage('send:message')
-    handleMessage(client: Socket, payload: { chatId: string; message: any }) {
-        console.log('hello')
-        this.server.to(payload.chatId).emit('new:message', payload.message);
-    }
+
+    
+
+
 }

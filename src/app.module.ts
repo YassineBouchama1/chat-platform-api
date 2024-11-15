@@ -7,7 +7,7 @@ import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { configuration } from 'config/app.config';
-import {  ChatModule } from './channel/chat.module';
+import {  ChatModule } from './chat/chat.module';
 import { FriendshipModule } from './friendship/friendship.module';
 import { MessageModule } from './message/message.module';
 
