@@ -26,10 +26,11 @@ export class CreateChatDto {
   ownerId?: string;
 
   @IsString()
-  message: string;
+  @IsOptional()
+  message?: string;
 
-  // @IsMongoId()
   @IsOptional()
   @IsArray()
+  @IsMongoId({ each: true })
   members?: string[];
 }
