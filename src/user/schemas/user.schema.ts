@@ -29,9 +29,6 @@ export class User {
   reputation: number;
 
 
-
-
-
   @Prop({ default: Date.now })
   timestamp: Date;
 }
