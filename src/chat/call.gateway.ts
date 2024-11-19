@@ -34,7 +34,7 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) { }
     @WebSocketServer()
     server: Server;
-
+    private connectedUsers: Map<string, string> = new Map(); // userId -> socketId
     private activeRooms: Map<string, Set<string>> = new Map();
     private userSocketMap: Map<string, string> = new Map();
 
@@ -42,6 +42,9 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (socket.user) {
             this.userSocketMap.set(socket.user._id.toString(), socket.id);
             console.log('User connected:', socket.user._id.toString());
+            // Broadcast to all clients that a user has connected
+            this.server.emit('user:connected', { userId: socket.user._id.toString() });
+
         }
     }
 
@@ -49,6 +52,8 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (socket.user) {
             this.userSocketMap.delete(socket.user._id.toString());
             console.log('User disconnected:', socket.user._id.toString());
+            // Broadcast to all clients that a user has disconnected
+            this.server.emit('user:disconnected', { userId: socket.user._id.toString() });
         }
     }
 

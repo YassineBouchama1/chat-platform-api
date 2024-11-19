@@ -6,6 +6,7 @@ import { Message, MessageSchema } from 'src/message/schemas/message.schema';
 import { Chat, ChatSchema } from 'src/chat/schemas/chat.schema';
 import { User, UserSchema } from 'src/user/schemas/user.schema';
 import { MessageGateway } from './message.gateway';
+import { CallGateway } from 'src/chat/call.gateway';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { MessageGateway } from './message.gateway';
 
   ],
   controllers: [MessageController],
-  providers: [MessageService, MessageGateway],
+  providers: [MessageService, MessageGateway, CallGateway],
   exports: [MessageService, MessageGateway],
 
 })

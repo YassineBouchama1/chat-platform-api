@@ -7,9 +7,10 @@ import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { configuration } from 'config/app.config';
-import {  ChatModule } from './chat/chat.module';
+import { ChatModule } from './chat/chat.module';
 import { FriendshipModule } from './friendship/friendship.module';
 import { MessageModule } from './message/message.module';
+import { NotificationModule } from './notification/notification.module';
 
 
 @Module({
@@ -51,6 +52,7 @@ import { MessageModule } from './message/message.module';
     MessageModule,
     ChatModule,
     FriendshipModule,
+    // NotificationModule
 
   ],
   controllers: [AppController],

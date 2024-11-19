@@ -52,7 +52,7 @@ export class ChatService {
     await newChat.save();
 
     // Create initial message if it's a direct conversation
-    if (!isGroup || !startConversation && message) {
+    if (false) {
       const messageDto: CreateMessageDto = { content: message };
       await this.messageService.sendMessage(newChat._id.toString(), messageDto, userId);
       newChat.lastMessage = message;
